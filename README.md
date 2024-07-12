@@ -1,0 +1,3 @@
+- Create bundled projector .exe
+- Extract swf from projector
+- Extract raw projector.exe file
