@@ -124,7 +124,7 @@
             this.Controls.Add(this.btn_browseProjectorExe);
             this.Controls.Add(this.label1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MaximumSize = new System.Drawing.Size(473, 1920);
+            this.MaximumSize = new System.Drawing.Size(1920, 147);
             this.MinimumSize = new System.Drawing.Size(473, 147);
             this.Name = "CreateProjector";
             this.Text = "ExeSwfUtils: Create Bundled Projector";

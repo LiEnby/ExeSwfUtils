@@ -88,7 +88,7 @@
             this.Controls.Add(this.btn_browse);
             this.Controls.Add(this.label1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
-            this.MaximumSize = new System.Drawing.Size(473, 1920);
+            this.MaximumSize = new System.Drawing.Size(1920, 112);
             this.MinimumSize = new System.Drawing.Size(473, 112);
             this.Name = "ExtractSwf";
             this.Text = "ExeSwfUtils: Extract SWF";
