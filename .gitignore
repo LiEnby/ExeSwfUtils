@@ -1,0 +1,11 @@
+ExeSwfCli/obj/*
+ExeSwfCli/bin/*
+
+ExeSwfFile/obj/*
+ExeSwfFile/bin/*
+
+ExeSwfGui/obj/*
+ExeSwfGui/bin/*
+
+.vs/*
+*.vs*
