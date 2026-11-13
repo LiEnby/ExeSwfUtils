@@ -1,4 +1,4 @@
-ExeSwfUtils single HTML version
+ExeSwfUtils single HTML version (http://swf.silica.codes)
 
 _Tools to do things with flash projector .EXE files with bundled swfs_
 
