@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXE Swf Utils</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #c0c0c0;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+
+        #stage2 {
+            margin-top: 10px;
+            color: #555;
+        }
+
+        #error {
+            margin-top: 10px;
+            color: #ff0000;
+        }
+
+        .center {
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        p,.bubble{
+            background-color: #8f8f8f;
+            color:#fdfdfd;
+            padding: 5px;
+            max-width: 40em;
+            min-width: 20em;
+            margin: 0px auto;
+            border-radius: 10px;
+            border: 2px solid #838383;
+            overflow: hidden;
+        }
+
+        h2{
+            color: white;
+        }
+
+        .bubble {
+            width: 40em;
+        }
+
+        input,button {
+            margin: 0px auto;
+            padding: 5px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            padding: 10px 20px;
+            border: 2px solid #838383;
+            border-radius: 8px;
+            background: #8f8f8f;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            text-align: center;
+            max-width: 40em;
+            min-width: 20em;
+            overflow: hidden;
+        }
+
+        input:hover,button:hover {
+            background: #686868;
+        }
+
+        input:active,button:active {
+            transform: scale(0.97);
+        }
+
+        input::file-selector-button {
+            display: none;
+            width: 0;
+            margin: 0;
+            height: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="center">
+        <div class="bubble">
+            <h2>EXE Swf Utils</h2>
+            <h4>A tool to do things with flash projector .EXE files with bundled swfs.</h4>
+        </div>
+        <br>
+        <p>Select a bundled .exe or .swf file.</p>
+        <br>
+        <input type="file" onchange="handleFile(this)" id="fdata" accept=".exe, .swf"/>
+        <div id="stage2"></div>
+        <div id="stage3"></div>
+        <div id="error"></div>
+    </div>
+
+    <script>
+        SWF_EXE_MAGIC = 0xFA123456;
+        swf = null;
+        exe = null;
+        
+        function handleExe(e){
+            exe = e.files[0];
+
+            var swfReader = new FileReader();
+            var exeReader = new FileReader();
+
+            exeReader.readAsArrayBuffer(exe);
+            exeReader.onload = function(e) {
+                swfReader.readAsArrayBuffer(swf);
+                swfReader.onload = function(e) {
+                    var packedData = packswf(new Uint8Array(swfReader.result), new Uint8Array(exeReader.result));
+                    if (packedData) {
+                        var downloadURL = createBlob(packedData, 'application/octet-stream');
+                        document.getElementById('stage3').innerHTML = '<p>SWF packed into EXE successfully.</p><br><button onclick="downloadURL(\'' + downloadURL + '\', \'' + changeExtension(swf.name, ".exe") + '\')">Download Bundled EXE</button>';
+                    } else {
+                        document.getElementById('error').innerText = 'Failed to pack SWF into EXE.';
+                    }
+                }
+            }
+        }
+
+        function handleSwf(){
+            var exeReader = new FileReader();
+            exeReader.readAsArrayBuffer(exe);
+
+            exeReader.onload = function(e) {
+                var unpackedData = unpackswf(new Uint8Array(exeReader.result));
+                if (unpackedData) {
+                    downloadBlob(unpackedData, changeExtension(exe.name, ".swf"), 'application/x-shockwave-flash');
+                } else {
+                    document.getElementById('error').innerText = 'No SWF found in the selected EXE file.';
+                }
+            }
+        }
+
+        function handleProjector(){
+            var exeReader = new FileReader();
+            exeReader.readAsArrayBuffer(exe);
+
+            exeReader.onload = function(e) {
+                var unpackedData = unpackprojector(new Uint8Array(exeReader.result));
+                if (unpackedData) {
+                    downloadBlob(unpackedData, changeExtension(exe.name, ".exe"), 'application/octet-stream');
+                } else {
+                    document.getElementById('error').innerText = 'No projector found in the selected EXE file.';
+                }
+            }
+        }
+
+        function handleFile(e){
+            const file = e.files[0];
+            document.getElementById('stage2').innerHTML = '';
+            document.getElementById('stage3').innerHTML = '';
+
+            if (file.name.endsWith('.exe')) {
+                document.getElementById('stage2').innerHTML = '<p>You selected a bundled .exe</p><br><button onclick="handleProjector()">Extract Projector</button>&nbsp;<button onclick="handleSwf()">Extract SWF</button>';
+                exe = file;
+            } else if (file.name.endsWith('.swf')) {
+                document.getElementById('stage2').innerHTML = '<p>Select a projector .exe</p><br><input type="file" id="exe" accept=".exe" onchange="handleExe(this)"/>';
+                swf = file;
+            } else {
+                document.getElementById('error').innerText = 'Unsupported file type selected.';
+            }
+        }
+
+        function packswf(swffile, exefile) {
+            if (!swffile || !exefile) {
+                return null;
+            }
+
+            var newexe = unpackprojector(exefile);
+            if (!newexe) {
+                newexe = exefile;
+            }
+
+            const buffer = new Uint8Array(new ArrayBuffer(swffile.byteLength + newexe.byteLength + 8));
+            buffer.set(newexe, 0);
+            buffer.set(swffile, newexe.byteLength);
+            buffer.set(int2byte(SWF_EXE_MAGIC), newexe.byteLength + swffile.byteLength);
+            buffer.set(int2byte(swffile.byteLength), newexe.byteLength + swffile.byteLength + 4);
+            return buffer;
+        }
+
+        function unpackswf(exefile) {
+            if (!exefile) {
+                return null;
+            }
+
+            const swfsize = byte2int(exefile.slice(exefile.byteLength - 4, exefile.byteLength));
+            const magic = byte2int(exefile.slice(exefile.byteLength - 8, exefile.byteLength - 4));
+
+            if (magic !== SWF_EXE_MAGIC) {
+                return null;
+            }
+
+            return new Uint8Array(exefile.slice((exefile.byteLength - swfsize) - 8, exefile.byteLength - 8));
+        }
+
+        function unpackprojector(exefile) {
+            if (!exefile) {
+                return null;
+            }
+
+            const swfsize = byte2int(exefile.slice(exefile.byteLength - 4, exefile.byteLength));
+            const magic = byte2int(exefile.slice(exefile.byteLength - 8, exefile.byteLength - 4));
+
+            if (magic !== SWF_EXE_MAGIC) {
+                return null;
+            }
+
+            return new Uint8Array(exefile.slice(0, (exefile.byteLength - swfsize) - 8));
+        }
+
+        function int2byte(value) {
+            const uint32 = new Uint32Array(1);
+            uint32[0] = value;
+            return Uint8Array.from(new Uint8Array(uint32.buffer));
+        }
+
+        function byte2int(bytes) {
+            const uint32 = new Uint32Array(bytes.buffer);
+            return uint32[0];
+        }
+
+        function changeExtension(filename, newExtension) {
+            const baseName = filename.substring(0, filename.lastIndexOf('.'));
+            return baseName + newExtension;
+        }
+
+        function downloadBlob(data, fileName, mimeType) {
+            var url = createBlob(data, mimeType);
+            downloadURL(url, fileName);
+            setTimeout(function() {
+                return window.URL.revokeObjectURL(url);
+            }, 1000);
+        };
+
+        function createBlob(data, mimeType) {
+            var blob = new Blob([data], {
+                type: mimeType
+            });
+            return window.URL.createObjectURL(blob);
+        };
+
+        function downloadURL (data, fileName) {
+            var a = document.createElement('a');
+            a.href = data;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.style = 'display: none';
+            a.click();
+            a.remove();
+        };
+
+
+    </script>
+</body>
+</html>
